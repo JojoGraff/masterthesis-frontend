@@ -3,6 +3,8 @@ import './style.css'
 import App from './App.vue'
 import PrimeVue from 'primevue/config';
 import {store} from "./store.ts";
+import 'primeicons/primeicons.css';
+import '/node_modules/primeflex/primeflex.css'
 
 
 import { createRouter, createWebHashHistory } from 'vue-router';
@@ -21,7 +23,7 @@ const router = createRouter({
     routes,
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _: any, next) => {
     if (to.meta.requiresAuth && !store.loggedIn) {
         next('/');
     } else {
@@ -55,7 +57,14 @@ const app = createApp(App);
 app.use(PrimeVue, {
     theme: {
         preset: MyPreset
-    }
+    },
+    pt: {
+        column: {
+            headerCell: {
+                class: ['text-black bg-blue-200'],
+            },
+        },
+    },
 });
 app.use(router)
 

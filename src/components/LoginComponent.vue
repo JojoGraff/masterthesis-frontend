@@ -2,23 +2,25 @@
 import InputText from "primevue/inputtext";
 import Button from "primevue/button";
 import Password from "primevue/password";
-import {onMounted, ref} from 'vue';
+import { ref, onMounted } from 'vue';
 import axios from "axios";
-import {store} from "../store.ts";
-import {useRouter} from "vue-router";
+import { store } from "../store.ts";
+import { useRouter } from "vue-router";
 
 const username = ref('');
 const password = ref('');
+const errorMessage = ref('');
 const router = useRouter();
 
 async function logIn() {
+  errorMessage.value = '';  // Reset error message on each login attempt
 
   try {
     // Basic Auth Token generieren
     const credentials = `${username.value}:${password.value}`;
     const basicAuthToken = 'Basic ' + btoa(credentials);
 
-    const response = await axios.get(import.meta.env.VITE_API_BASE_URL, {
+    const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/fetch-api/cases`, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': basicAuthToken
@@ -29,6 +31,7 @@ async function logIn() {
       // User-Daten speichern (Nur das Token, nicht das Passwort)
       store.user = username.value;
       store.loggedIn = true;
+      store.authToken = basicAuthToken
 
       // Das Basic Auth Token im Local Storage speichern
       localStorage.setItem("authToken", basicAuthToken);
@@ -38,8 +41,8 @@ async function logIn() {
     }
   } catch (error) {
     console.error("Login fehlgeschlagen", error);
+    errorMessage.value = 'Login failed. Please check your credentials and try again.';
   }
-
 }
 
 onMounted(() => {
@@ -59,10 +62,15 @@ onMounted(() => {
         Use your Service Cloud Login
       </div>
       <div class="input-container">
-        <InputText v-model="username" placeholder="Username" />
-        <Password v-model="password" toggleMask placeholder="Password" :feedback="false" :inputStyle="{ width: '100%' } "  />
+        <InputText v-model="username" placeholder="Username" icon="pi-user"/>
+        <Password v-model="password" toggleMask placeholder="Password" :feedback="false" :inputStyle="{ width: '100%' }" />
       </div>
       <Button label="Submit" @click="logIn" style="border-color: #000057; background-color: #000057" />
+
+      <!-- Error Message Display -->
+      <div v-if="errorMessage" class="error-message">
+        {{ errorMessage }}
+      </div>
     </div>
   </div>
 </template>
@@ -124,5 +132,11 @@ h1 {
   align-self: flex-start;
   padding-bottom: 3rem; /* Reduce the padding below the top text */
   color: #fff; /* White text to match the overall theme */
+}
+
+.error-message {
+  color: red;
+  margin-top: 1rem;
+  font-size: 0.9rem;
 }
 </style>

@@ -12,7 +12,7 @@ const updateBackground = () => {
     };
   } else if (route.path === "/home") {
     backgroundStyle.value = {
-      background: "white",
+      background: "linear-gradient(to bottom right, #AADCFF, #B8F7F9)",
     };
   } else {
     backgroundStyle.value = {}; // Default background
