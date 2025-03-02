@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { store } from "../store.ts";
 import { useRouter } from 'vue-router';
-import {ref, onMounted, watch} from 'vue';
+import {ref, onMounted, watch, computed} from 'vue';
 import axios from 'axios';
 
 
@@ -12,6 +12,7 @@ import InputText from 'primevue/inputtext';
 import { FilterMatchMode } from '@primevue/core/api';
 import IconField from "primevue/iconfield";
 import {InputIcon} from "primevue";
+import {Dialog} from "primevue";
 
 const router = useRouter();
 const users = ref();
@@ -153,16 +154,151 @@ const filters = ref({
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
 });
 const selectedUser = ref();
+const visible = ref(false);
 
 
 
 
 
+
+
+
+interface User {
+  id: string;
+  displayName: string;
+  timezone: string;
+  fieldOfWork: string;
+  targetLanguage: string;
+}
+
+const user = ref<User>({
+  id: '',
+  displayName: '',
+  timezone: '',
+  fieldOfWork: '',
+  targetLanguage: '',
+});
+// Computed property to check if the form is valid (i.e. required fields are filled)
+const isFormValid = computed(() => {
+  return user.value.id.trim() !== '';
+});
+
+const openDialog = () => {
+  visible.value = true;
+};
+
+const closeDialog = () => {
+  visible.value = false;
+};
+
+
+const addUser = async () => {
+  try {
+    const response = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/database/addUser`,
+        JSON.stringify(user.value),
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': store.authToken,
+          }
+        }
+    );
+    console.log('User added successfully:', response.data);
+  } catch (error) {
+    console.error('Error adding user:', error);
+  } finally {
+  }
+};
+
+const onSave = async () => {
+  if (isFormValid.value) {
+    await addUser();
+    closeDialog();
+    await fetchData()
+    user.value = {
+      id: '',
+      displayName: '',
+      timezone: '',
+      fieldOfWork: '',
+      targetLanguage: '',
+    };
+  }
+};
 </script>
 
 
 <template>
+
+
+
+  <div class="card flex justify-center">
+    <Button label="Add User" @click="openDialog" />
+    <Dialog v-model:visible="visible" modal header="Add User" :style="{ width: '25rem' }">
+      <form @submit.prevent="onSave" novalidate>
+        <!-- Name Input -->
+        <div class="flex items-center gap-4">
+          <div class="md:col-4">
+            <label for="name" class="font-semibold w-24">Name</label>
+          </div>
+          <div class="md:col-6">
+            <InputText id="name" v-model="user.displayName" autocomplete="off" class="input-field" />
+          </div>
+        </div>
+
+        <!-- ID Input (Required) -->
+        <div class="flex items-center gap-4">
+          <div class="md:col-4">
+            <label for="id" class="font-semibold w-24">ID</label>
+          </div>
+          <div class="md:col-6">
+            <InputText id="id" v-model="user.id" autocomplete="off" class="input-field" required />
+          </div>
+        </div>
+
+        <!-- Timezone Input -->
+        <div class="flex items-center gap-4">
+          <div class="md:col-4">
+            <label for="timezone" class="font-semibold w-24">Timezone</label>
+          </div>
+          <div class="md:col-6">
+            <InputText id="timezone" v-model="user.timezone" autocomplete="off" class="input-field" />
+          </div>
+        </div>
+
+        <!-- Field of Work Input -->
+        <div class="flex items-center gap-4">
+          <div class="md:col-4">
+            <label for="fieldOfWork" class="font-semibold w-24">Field of Work</label>
+          </div>
+          <div class="md:col-6">
+            <InputText id="fieldOfWork" v-model="user.fieldOfWork" autocomplete="off" class="input-field" />
+          </div>
+        </div>
+
+        <!-- Target Language Input -->
+        <div class="flex items-center gap-4 mb-3">
+          <div class="md:col-4">
+            <label for="targetLanguage" class="font-semibold w-24">Target Language</label>
+          </div>
+          <div class="md:col-6">
+            <InputText id="targetLanguage" v-model="user.targetLanguage" autocomplete="off" class="input-field" />
+          </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex gap-2" style="justify-content: flex-end">
+          <Button type="button" label="Cancel" severity="secondary" @click="closeDialog" />
+          <Button type="submit" label="Save" :disabled="!isFormValid" />
+        </div>
+      </form>
+    </Dialog>
+  </div>
+
+
   <div class="logout-container">
+
+
     <Button label="Logout" icon="pi pi-sign-out" class="p-button-danger" @click="logOut" />
 
         <IconField>
