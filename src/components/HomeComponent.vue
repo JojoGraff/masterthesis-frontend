@@ -13,6 +13,7 @@ import { FilterMatchMode } from '@primevue/core/api';
 import IconField from "primevue/iconfield";
 import {InputIcon} from "primevue";
 import {Dialog} from "primevue";
+import {SelectButton} from "primevue";
 
 const router = useRouter();
 const users = ref();
@@ -158,6 +159,38 @@ const visible = ref(false);
 
 
 
+async function generateReport() {
+  if (!selectedPeriod.value) {
+    console.error('Please select a period before generating the report.');
+    return;
+  }
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/logic/report?filter=${selectedPeriod.value}`, {
+      method: 'GET',
+      headers: {
+        Authorization: store.authToken, // Adjust authentication
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to download report: ${response.statusText}`);
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'generated.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+  } catch (error) {
+    console.error('Error downloading report:', error);
+  }
+}
 
 
 
@@ -229,6 +262,13 @@ const onSave = async () => {
 function redirectAPI() {
   window.location.href = `${import.meta.env.VITE_API_BASE_URL}/api`;
 }
+
+
+const selectedPeriod = ref<string | null>(null);
+const periodOptions = [
+  { label: 'Week', value: 'week' },
+  { label: 'Month', value: 'month' },
+];
 </script>
 
 <template>
@@ -239,14 +279,26 @@ function redirectAPI() {
       <h1 class="text-2xl font-bold text-blue-500 mb-6">SC AI Extention</h1>
       <!-- Sidebar Navigation -->
       <nav class="space-y-2 " >
-        <Button class="sidebar-button flex items-center gap-2" style="margin-bottom: 5rem;">
-          <i class="pi pi-home"></i>
-          <span>Dashboard</span>
-        </Button>
-        <Button class="sidebar-button flex items-center gap-2" style="margin-bottom: 5rem;">
-          <i class="pi pi-file-pdf"></i>
-          <span>Generate Report</span>
-        </Button>
+        <!-- Selection between 'week' and 'month' -->
+        <SelectButton
+            v-model="selectedPeriod"
+            :options="periodOptions"
+            optionLabel="label"
+            optionValue="value"
+            class="p-mb-3"
+        />
+
+        <!-- Button to generate the report -->
+        <Button
+            class="sidebar-button flex items-center gap-2"
+            label="Generate Report"
+            icon="pi pi-file-pdf"
+            style="margin-bottom: 5rem;"
+            @click="generateReport"
+            :disabled="!selectedPeriod"
+        />
+
+
         <Button class="sidebar-button flex items-center gap-2" style="margin-bottom: 5rem;" @click="redirectAPI">
           <i class="pi pi-angle-double-right"></i>
           <span>API Documentation</span>
