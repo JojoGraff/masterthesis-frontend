@@ -19,8 +19,10 @@ async function logIn() {
     // Basic Auth Token generieren
     const credentials = `${username.value}:${password.value}`;
     const basicAuthToken = 'Basic ' + btoa(credentials);
+    const url = `${import.meta.env.VITE_API_BASE_URL}/fetch-api/cases`;
+    console.log(url)
 
-    const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/fetch-api/cases`, {
+    const response = await axios.get(url, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': basicAuthToken

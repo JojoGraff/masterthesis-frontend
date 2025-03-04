@@ -14,18 +14,22 @@ import IconField from "primevue/iconfield";
 import {InputIcon} from "primevue";
 import {Dialog} from "primevue";
 import {SelectButton} from "primevue";
+import ProgressSpinner from 'primevue/progressspinner';
 
 const router = useRouter();
 const users = ref();
 const editingRows = ref([]);
+const loading = ref(false);
 
 
 function logOut() {
   store.logout();
   router.push('/');
 }
-
-
+const dt = ref();
+const exportc = () => {
+  dt.value.exportCSV();
+};
 
 const fetchData = async () => {
   if (!store.authToken) {
@@ -140,16 +144,23 @@ onMounted(() => {
   }
 });
 
-const onRowEditSave = (event: any) => {
-  let { newData } = event;
+const onRowEditSave = async (event: any) => {
+  let { newData } = event; // Make sure index is available
 
+  try {
+    await updateUserData(JSON.stringify(newData));
 
-  updateUserData(JSON.stringify(newData))
-      .catch((error) => {
-        console.error('Failed to update user:', error);
-      });
-  fetchData()
+    // Find the index of the edited row and update it in the ref
+    const userIndex = users.value.findIndex((user: any) => user.id === newData.id);
+    if (userIndex !== -1) {
+      users.value[userIndex] = { ...newData }; // Update the local data
+    }
+
+  } catch (error) {
+    console.error('Failed to update user:', error);
+  }
 };
+
 
 const filters = ref({
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -164,11 +175,14 @@ async function generateReport() {
     console.error('Please select a period before generating the report.');
     return;
   }
+
+  loading.value = true; // Show loading indicator
+
   try {
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/logic/report?filter=${selectedPeriod.value}`, {
       method: 'GET',
       headers: {
-        Authorization: store.authToken, // Adjust authentication
+        Authorization: store.authToken,
       },
     });
 
@@ -189,6 +203,8 @@ async function generateReport() {
 
   } catch (error) {
     console.error('Error downloading report:', error);
+  } finally {
+    loading.value = false; // Hide loading indicator
   }
 }
 
@@ -297,6 +313,12 @@ const periodOptions = [
             @click="generateReport"
             :disabled="!selectedPeriod"
         />
+        <Dialog v-model:visible="loading" modal header="Generating Report">
+          <div class="flex justify-center items-center flex-col">
+            <ProgressSpinner />
+            <p>Please wait while we generate your report...</p>
+          </div>
+        </Dialog>
 
 
         <Button class="sidebar-button flex items-center gap-2" style="margin-bottom: 5rem;" @click="redirectAPI">
@@ -378,6 +400,7 @@ const periodOptions = [
         <Button label="Delete" icon="pi pi-trash" class="p-button-danger" @click="deleteUser" />
         <Button label="Add User" icon="pi pi-user-plus" @click="openDialog" />
         <Button label="Import Users" icon="pi pi-cloud-download" @click="importUsers" />
+        <Button icon="pi pi-external-link" label="Export" @click="exportc" />
         <div class="search-container">
           <IconField>
             <InputIcon>
@@ -393,6 +416,7 @@ const periodOptions = [
         <DataTable
             v-model:editingRows="editingRows"
             :value="users"
+            ref="dt"
             editMode="row"
             dataKey="id"
             @row-edit-save="onRowEditSave"
